@@ -9,7 +9,8 @@ import {
   Share2, 
   Briefcase,
   Video,
-  Globe
+  Globe,
+  Plus
 } from 'lucide-react';
 import { useStreamStore } from '../../stores/useStreamStore';
 import type { StreamTemplate } from '../../types';
@@ -19,6 +20,15 @@ interface TemplatesGalleryProps {
 }
 
 const templates: StreamTemplate[] = [
+  {
+    id: 'blank',
+    type: 'blank',
+    name: 'Начать с чистого листа',
+    description: '',
+    icon: 'Plus',
+    features: [],
+    color: '#6b7280',
+  },
   {
     id: 'meeting',
     type: 'meeting',
@@ -36,15 +46,6 @@ const templates: StreamTemplate[] = [
     icon: 'GraduationCap',
     features: ['Регистрация', 'Оплата', 'CRM'],
     color: '#6366f1',
-  },
-  {
-    id: 'open-stream',
-    type: 'open-stream',
-    name: 'Открытая трансляция',
-    description: 'Для широкой аудитории с интеграцией в соцсети',
-    icon: 'Globe',
-    features: ['Соцсети', 'Продвижение'],
-    color: '#10b981',
   },
   {
     id: 'corporate',
@@ -122,6 +123,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   Briefcase,
   Video,
   Globe,
+  Plus,
 };
 
 export const TemplatesGallery = ({ searchQuery = '' }: TemplatesGalleryProps) => {
@@ -171,6 +173,7 @@ export const TemplatesGallery = ({ searchQuery = '' }: TemplatesGalleryProps) =>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayedTemplates.map((template) => {
           const IconComponent = iconMap[template.icon] || Video;
+          const isBlank = template.id === 'blank';
           return (
             <button
               key={template.id}
@@ -185,27 +188,31 @@ export const TemplatesGallery = ({ searchQuery = '' }: TemplatesGalleryProps) =>
               aria-label={`Создать трансляцию: ${template.name}`}
             >
               <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 flex-shrink-0"
+                className={`rounded-lg flex items-center justify-center mb-4 flex-shrink-0 ${isBlank ? 'w-16 h-16' : 'w-12 h-12'}`}
                 style={{ backgroundColor: `${template.color}15` }}
               >
-                <IconComponent size={24} style={{ color: template.color }} />
+                <IconComponent size={isBlank ? 40 : 24} style={{ color: template.color }} />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-gray-700 text-left">
                 {template.name}
               </h3>
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2 text-left">
-                {template.description}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-auto">
-                {template.features.slice(0, 2).map((feature, idx) => (
-                  <span
-                    key={idx}
-                    className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700"
-                  >
-                    {feature}
-                  </span>
-                ))}
-              </div>
+              {template.description && (
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2 text-left">
+                  {template.description}
+                </p>
+              )}
+              {template.features.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-auto">
+                  {template.features.slice(0, 2).map((feature, idx) => (
+                    <span
+                      key={idx}
+                      className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              )}
             </button>
           );
         })}

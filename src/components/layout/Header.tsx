@@ -35,7 +35,7 @@ const ToolButton = ({ icon, label, onClick }: { icon: React.ReactNode; label: st
 };
 
 export const Header = ({ onSettingsClick }: HeaderProps) => {
-  const { streamState, setCurrentPage, toggleParticipants, showParticipants, activeSceneId, centerActiveScene } = useStreamStore();
+  const { streamState, setCurrentPage, toggleParticipants, showParticipants, activeSceneId, centerActiveScene, textMode, setTextMode } = useStreamStore();
 
   return (
     <>
@@ -79,7 +79,11 @@ export const Header = ({ onSettingsClick }: HeaderProps) => {
             label="Спикеры"
             onClick={toggleParticipants}
           />
-          <ToolButton icon={<Type size={20} className="text-text-muted" />} label="Текст" />
+          <ToolButton 
+            icon={<Type size={20} className={textMode ? "text-accent-purple" : "text-text-muted"} />} 
+            label="Текст"
+            onClick={() => setTextMode(!textMode)}
+          />
           <ToolButton icon={<Image size={20} className="text-text-muted" />} label="Изображение" />
           <ToolButton icon={<FileText size={20} className="text-text-muted" />} label="Документ" />
           <ToolButton icon={<Video size={20} className="text-text-muted" />} label="Видео" />

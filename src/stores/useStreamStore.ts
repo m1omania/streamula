@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { StreamState, Scene, Participant, Message, Poll, Reaction, Annotation, StreamRecording } from '../types';
+import type { StreamState, Scene, Participant, Message, Poll, Reaction, Annotation, StreamRecording, TextBlock } from '../types';
 import { mockParticipants, mockScenes, mockMessages, mockRecordings } from '../utils/mockData';
 
 interface StoreState {
@@ -38,6 +38,7 @@ interface StoreState {
   showParticipants: boolean;
   showChat: boolean;
   showSpeakers: boolean;
+  textMode: boolean; // Режим добавления текста
   
   // Navigation
   currentPage: 'landing' | 'studio';
@@ -54,6 +55,10 @@ interface StoreState {
   
   // Participant positions on scene (sceneId -> { participantId: { x, y } })
   participantPositions: Record<number, Record<number, { x: number; y: number }>>;
+  
+  // Text blocks on scenes (sceneId -> TextBlock[])
+  sceneTextBlocks: Record<number, TextBlock[]>;
+  editingTextBlockId: string | null;
 }
 
 interface StoreActions {
@@ -73,6 +78,12 @@ interface StoreActions {
   setParticipantOnAir: (participantId: number, sceneId: number | null) => void;
   setExpandedParticipantOnScene: (sceneId: number, participantId: number | null) => void;
   setParticipantPosition: (sceneId: number, participantId: number, position: { x: number; y: number }) => void;
+  
+  // Text block actions
+  addTextBlock: (sceneId: number, textBlock: Omit<TextBlock, 'id'>) => void;
+  updateTextBlock: (sceneId: number, textBlockId: string, updates: Partial<TextBlock>) => void;
+  removeTextBlock: (sceneId: number, textBlockId: string) => void;
+  setEditingTextBlock: (textBlockId: string | null) => void;
   
   // Chat actions
   addMessage: (message: Omit<Message, 'id' | 'time'>) => void;
@@ -107,6 +118,7 @@ interface StoreActions {
   toggleParticipants: () => void;
   toggleChat: () => void;
   toggleSpeakers: () => void;
+  setTextMode: (enabled: boolean) => void;
   
   // Navigation actions
   setCurrentPage: (page: 'landing' | 'studio') => void;
@@ -135,15 +147,18 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
   reactions: [],
   annotations: [],
   isStreamFullscreen: false,
-  showParticipants: true,
-  showChat: false,
-  showSpeakers: false,
-  currentPage: 'landing',
+          showParticipants: true,
+          showChat: false,
+          showSpeakers: false,
+          textMode: false,
+          currentPage: 'landing',
   selectedTemplateName: 'Моя трансляция',
   recordings: mockRecordings,
-  participantsOnAir: {},
-  expandedParticipantOnScene: {},
-  participantPositions: {},
+          participantsOnAir: {},
+          expandedParticipantOnScene: {},
+          participantPositions: {},
+          sceneTextBlocks: {},
+          editingTextBlockId: null,
   
   // Scene actions
           setActiveScene: (sceneId: number) => {
@@ -319,6 +334,51 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
     }));
   },
   
+  // Text block actions
+  addTextBlock: (sceneId: number, textBlock: Omit<TextBlock, 'id'>) => {
+    set((state) => {
+      const newTextBlock: TextBlock = {
+        ...textBlock,
+        id: `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      };
+      return {
+        sceneTextBlocks: {
+          ...state.sceneTextBlocks,
+          [sceneId]: [...(state.sceneTextBlocks[sceneId] || []), newTextBlock],
+        },
+        editingTextBlockId: newTextBlock.id,
+      };
+    });
+  },
+  updateTextBlock: (sceneId: number, textBlockId: string, updates: Partial<TextBlock>) => {
+    set((state) => {
+      const blocks = state.sceneTextBlocks[sceneId] || [];
+      return {
+        sceneTextBlocks: {
+          ...state.sceneTextBlocks,
+          [sceneId]: blocks.map(block => 
+            block.id === textBlockId ? { ...block, ...updates } : block
+          ),
+        },
+      };
+    });
+  },
+  removeTextBlock: (sceneId: number, textBlockId: string) => {
+    set((state) => {
+      const blocks = state.sceneTextBlocks[sceneId] || [];
+      return {
+        sceneTextBlocks: {
+          ...state.sceneTextBlocks,
+          [sceneId]: blocks.filter(block => block.id !== textBlockId),
+        },
+        editingTextBlockId: state.editingTextBlockId === textBlockId ? null : state.editingTextBlockId,
+      };
+    });
+  },
+  setEditingTextBlock: (textBlockId: string | null) => {
+    set({ editingTextBlockId: textBlockId });
+  },
+  
   // Chat actions
   addMessage: (message: Omit<Message, 'id' | 'time'>) => {
     const newMessage: Message = {
@@ -461,9 +521,12 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
   toggleChat: () => {
     set((state) => ({ showChat: !state.showChat }));
   },
-  toggleSpeakers: () => {
-    set((state) => ({ showSpeakers: !state.showSpeakers }));
-  },
+          toggleSpeakers: () => {
+            set((state) => ({ showSpeakers: !state.showSpeakers }));
+          },
+          setTextMode: (enabled: boolean) => {
+            set({ textMode: enabled });
+          },
   
   // Navigation actions
   setCurrentPage: (page: 'landing' | 'studio') => {

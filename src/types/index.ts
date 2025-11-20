@@ -13,6 +13,23 @@ export interface Participant {
 
 export type SceneType = 'text' | 'image' | 'blank' | 'template' | 'presentation';
 
+export interface TextBlock {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  fontWeight: string;
+  color: string;
+  fontFamily: string;
+  textAlign: 'left' | 'center' | 'right';
+  backgroundColor?: string;
+  padding?: number;
+  borderRadius?: number;
+}
+
 export interface Scene {
   id: number;
   name: string;
@@ -22,6 +39,7 @@ export interface Scene {
   slideCount?: number;
   backgroundColor?: string; // Цвет или градиент для фона
   backgroundPattern?: string; // Тип паттерна (lines, dots, circles, stripes)
+  textBlocks?: TextBlock[]; // Текстовые блоки на сцене
 }
 
 export interface Message {
