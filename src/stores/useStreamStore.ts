@@ -48,6 +48,12 @@ interface StoreState {
   // Recordings
   recordings: StreamRecording[];
   
+  // Streaming
+  streamId: string | null;
+  viewers: number;
+  webrtcConnection: RTCPeerConnection | null;
+  webrtcStream: MediaStream | null;
+  
   // Participants on air (participantId -> sceneId[])
   participantsOnAir: Record<number, number[]>;
   
@@ -128,6 +134,12 @@ interface StoreActions {
   
   // Recording actions
   addRecording: (recording: StreamRecording) => void;
+  
+  // Streaming actions
+  setStreamId: (streamId: string | null) => void;
+  setViewers: (count: number) => void;
+  setWebRTCConnection: (connection: RTCPeerConnection | null) => void;
+  setWebRTCStream: (stream: MediaStream | null) => void;
 }
 
 export const useStreamStore = create<StoreState & StoreActions>((set) => ({
@@ -162,6 +174,10 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
           participantPositions: {},
           sceneTextBlocks: {},
           editingTextBlockId: null,
+          streamId: null,
+          viewers: 0,
+          webrtcConnection: null,
+          webrtcStream: null,
   
   // Scene actions
           setActiveScene: (sceneId: number) => {
@@ -547,6 +563,20 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
     set((state) => ({
       recordings: [recording, ...state.recordings],
     }));
+  },
+  
+  // Streaming actions
+  setStreamId: (streamId: string | null) => {
+    set({ streamId });
+  },
+  setViewers: (count: number) => {
+    set({ viewers: count });
+  },
+  setWebRTCConnection: (connection: RTCPeerConnection | null) => {
+    set({ webrtcConnection: connection });
+  },
+  setWebRTCStream: (stream: MediaStream | null) => {
+    set({ webrtcStream: stream });
   },
 }));
 

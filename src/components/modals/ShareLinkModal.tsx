@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useStreamStore } from '../../stores/useStreamStore';
 
 interface ShareLinkModalProps {
   open: boolean;
@@ -9,7 +10,10 @@ interface ShareLinkModalProps {
 
 export const ShareLinkModal = ({ open, onOpenChange }: ShareLinkModalProps) => {
   const [copied, setCopied] = useState(false);
-  const streamUrl = `${window.location.origin}/stream/${Date.now()}`; // В реальном приложении будет ID трансляции
+  const { streamId } = useStreamStore();
+  const streamUrl = streamId 
+    ? `${window.location.origin}/watch/${streamId}`
+    : `${window.location.origin}/watch/...`;
 
   const handleCopy = async () => {
     try {
@@ -48,7 +52,8 @@ export const ShareLinkModal = ({ open, onOpenChange }: ShareLinkModalProps) => {
                   />
                   <button
                     onClick={handleCopy}
-                    className="px-4 py-2 bg-accent-blue hover:bg-[#5855eb] rounded-lg text-white transition-colors duration-150 flex items-center gap-2"
+                    disabled={!streamId}
+                    className="px-4 py-2 bg-accent-blue hover:bg-[#5855eb] rounded-lg text-white transition-colors duration-150 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {copied ? (
                       <>
@@ -66,9 +71,15 @@ export const ShareLinkModal = ({ open, onOpenChange }: ShareLinkModalProps) => {
               </div>
 
               <div className="pt-4 border-t border-border">
-                <p className="text-sm text-text-muted">
-                  Отправьте эту ссылку спикерам, чтобы они могли присоединиться к трансляции
-                </p>
+                {!streamId ? (
+                  <p className="text-sm text-text-muted">
+                    Начните трансляцию, чтобы получить ссылку для зрителей
+                  </p>
+                ) : (
+                  <p className="text-sm text-text-muted">
+                    Отправьте эту ссылку спикерам, чтобы они могли присоединиться к трансляции
+                  </p>
+                )}
               </div>
             </div>
           </div>

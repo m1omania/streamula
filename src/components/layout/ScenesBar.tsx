@@ -195,7 +195,7 @@ const SceneParticipant = ({
 };
 
 export const ScenesBar = () => {
-  const { scenes, activeSceneId, setActiveScene, updateScene, addScene, removeScene, isStreamFullscreen, setStreamFullscreen, participants, participantsOnAir, setParticipantOnAir, expandedParticipantOnScene, setExpandedParticipantOnScene, participantPositions, setParticipantPosition, streamState, startStream, stopStream, sceneTextBlocks, addTextBlock, updateTextBlock, removeTextBlock, editingTextBlockId, setEditingTextBlock, textMode, setTextMode } = useStreamStore();
+  const { scenes, activeSceneId, setActiveScene, updateScene, addScene, removeScene, isStreamFullscreen, setStreamFullscreen, participants, participantsOnAir, setParticipantOnAir, expandedParticipantOnScene, setExpandedParticipantOnScene, participantPositions, setParticipantPosition, streamState, startStream, stopStream, sceneTextBlocks, addTextBlock, updateTextBlock, removeTextBlock, editingTextBlockId, setEditingTextBlock, textMode, setTextMode, streamId, webrtcConnection, webrtcStream } = useStreamStore();
   const [backgroundModalOpen, setBackgroundModalOpen] = useState<number | null>(null);
   const [backgroundModalPosition, setBackgroundModalPosition] = useState<{ x: number; y: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'participant' | 'text' | 'scene'; id?: number | string; sceneId?: number; isExpanded?: boolean } | null>(null);
@@ -223,6 +223,15 @@ export const ScenesBar = () => {
   }, [selectedParticipant, expandedParticipantOnScene, setExpandedParticipantOnScene]);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const sceneElementRef = useRef<HTMLDivElement | null>(null);
+  
+  // WebRTC для трансляции
+  useEffect(() => {
+    if (streamState.isStreaming && streamId && !webrtcConnection) {
+      // Инициализация WebRTC будет в ControlPanel или отдельном компоненте
+      // Здесь только отмечаем, что нужно начать трансляцию
+    }
+  }, [streamState.isStreaming, streamId, webrtcConnection]);
 
   useEffect(() => {
     if (editingSceneId && inputRef.current) {

@@ -15,9 +15,10 @@ import {
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ShareLinkModal } from '../modals/ShareLinkModal';
 import { useMediaDevices } from '../../hooks/useMediaDevices';
+import { useWebRTC } from '../../hooks/useWebRTC';
 
 export const ControlPanel = () => {
-  const { participants, updateParticipant, streamState, startRecording, stopRecording, stopStream, showChat, toggleChat, setCurrentPage } = useStreamStore();
+  const { participants, updateParticipant, streamState, startRecording, stopRecording, stopStream, showChat, toggleChat, setCurrentPage, streamId, setStreamId, startStream } = useStreamStore();
   const currentUser = participants[0];
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   
@@ -26,6 +27,15 @@ export const ControlPanel = () => {
     currentUser?.audio ?? true,
     currentUser?.video ?? true
   );
+
+  // WebRTC для трансляции (только когда трансляция активна)
+  const { isConnected, connectionState } = useWebRTC({
+    streamId: streamId || '',
+    clientType: 'broadcaster',
+    onError: (error) => {
+      console.error('WebRTC ошибка:', error);
+    },
+  });
 
   // Синхронизируем стрим с участником
   useEffect(() => {
@@ -39,6 +49,19 @@ export const ControlPanel = () => {
     }
   }, [stream, audio, video, currentUser?.id]);
 
+  // Генерация уникального ID для трансляции
+  const generateStreamId = () => {
+    return Math.random().toString(36).substring(2, 9);
+  };
+
+  const handleStartStream = () => {
+    if (!streamId) {
+      const newStreamId = generateStreamId();
+      setStreamId(newStreamId);
+    }
+    startStream();
+  };
+
   const handleEndCall = () => {
     // Останавливаем медиа-стрим
     stopMedia();
@@ -48,6 +71,7 @@ export const ControlPanel = () => {
     }
     // Останавливаем трансляцию
     stopStream();
+    setStreamId(null);
     // Переходим на лендинг
     setCurrentPage('landing');
   };
@@ -161,6 +185,20 @@ export const ControlPanel = () => {
 
       {/* Center - Other controls */}
       <div className="flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2">
+        {/* Начать трансляцию */}
+        {!streamState.isStreaming && (
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={handleStartStream}
+              className="w-12 h-12 rounded-full bg-accent-purple hover:bg-[#7c3aed] transition-colors duration-150 flex items-center justify-center"
+              title="Начать трансляцию"
+            >
+              <Circle size={20} className="text-white fill-white" />
+            </button>
+            <span className="text-xs text-text-muted">Начать</span>
+          </div>
+        )}
+        
         {/* Демонстрация экрана */}
         <div className="flex flex-col items-center gap-1">
           <button
