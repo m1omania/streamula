@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStreamStore } from '../../stores/useStreamStore';
-import { Plus, Trash2, Maximize, ArrowRightLeft, Image, ArrowLeft, ArrowRight, Copy, Sparkles, Radio } from 'lucide-react';
+import { Plus, Trash2, Maximize, ArrowRightLeft, Image, Copy, Sparkles, Radio, LayoutDashboard, LayoutGrid, LayoutPanelLeft, LayoutPanelTop, LayoutTemplate } from 'lucide-react';
 import type { Scene, Participant } from '../../types';
 import { getInitials, getRandomColor } from '../../utils/mockData';
 import { BackgroundModal } from '../modals/BackgroundModal';
@@ -195,16 +195,14 @@ const SceneParticipant = ({
 };
 
 export const ScenesBar = () => {
-  const { scenes, activeSceneId, setActiveScene, updateScene, addScene, insertScene, removeScene, moveScene, isStreamFullscreen, setStreamFullscreen, participants, participantsOnAir, setParticipantOnAir, expandedParticipantOnScene, setExpandedParticipantOnScene, participantPositions, setParticipantPosition, streamState, startStream, stopStream, shouldCenterActiveScene, sceneTextBlocks, addTextBlock, updateTextBlock, removeTextBlock, editingTextBlockId, setEditingTextBlock, textMode, setTextMode } = useStreamStore();
+  const { scenes, activeSceneId, setActiveScene, updateScene, addScene, removeScene, isStreamFullscreen, setStreamFullscreen, participants, participantsOnAir, setParticipantOnAir, expandedParticipantOnScene, setExpandedParticipantOnScene, participantPositions, setParticipantPosition, streamState, startStream, stopStream, sceneTextBlocks, addTextBlock, updateTextBlock, removeTextBlock, editingTextBlockId, setEditingTextBlock, textMode, setTextMode } = useStreamStore();
   const [backgroundModalOpen, setBackgroundModalOpen] = useState<number | null>(null);
   const [backgroundModalPosition, setBackgroundModalPosition] = useState<{ x: number; y: number } | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'participant' | 'text'; id: number | string; sceneId: number; isExpanded?: boolean } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'participant' | 'text' | 'scene'; id?: number | string; sceneId?: number; isExpanded?: boolean } | null>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<{ id: number; sceneId: number } | null>(null);
   
-  // В полноэкранном режиме показываем только активную сцену
-  const displayedScenes = isStreamFullscreen 
-    ? scenes.filter(s => s.id === activeSceneId)
-    : scenes;
+  // Показываем только активную сцену (как в Google Slides)
+  const activeScene = scenes.find(s => s.id === activeSceneId);
   const [editingSceneId, setEditingSceneId] = useState<number | null>(null);
   
   // Обработка горячих клавиш для разворачивания/сворачивания спикера
@@ -225,8 +223,6 @@ export const ScenesBar = () => {
   }, [selectedParticipant, expandedParticipantOnScene, setExpandedParticipantOnScene]);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const sceneRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (editingSceneId && inputRef.current) {
@@ -235,29 +231,7 @@ export const ScenesBar = () => {
     }
   }, [editingSceneId]);
 
-  // Прокрутка к активной сцене
-  useEffect(() => {
-    if (!isStreamFullscreen && activeSceneId && sceneRefs.current[activeSceneId] && scrollContainerRef.current) {
-      // Небольшая задержка для того, чтобы DOM обновился
-      setTimeout(() => {
-        const sceneElement = sceneRefs.current[activeSceneId];
-        if (sceneElement && scrollContainerRef.current) {
-          const container = scrollContainerRef.current;
-          const sceneRect = sceneElement.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const scrollLeft = container.scrollLeft;
-          const sceneCenter = sceneRect.left - containerRect.left + scrollLeft + sceneRect.width / 2;
-          const containerCenter = containerRect.width / 2;
-          const targetScroll = sceneCenter - containerCenter;
-          
-          container.scrollTo({
-            left: targetScroll,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
-    }
-  }, [activeSceneId, isStreamFullscreen, scenes.length, shouldCenterActiveScene]);
+  // Убрали логику прокрутки - теперь показываем только активную сцену
 
   const handleNameClick = (e: React.MouseEvent, sceneId: number) => {
     e.stopPropagation();
@@ -306,93 +280,48 @@ export const ScenesBar = () => {
     return (
       <div className="flex items-center gap-1">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
-            setBackgroundModalPosition({
-              x: rect.left,
-              y: rect.bottom + 8, // 8px отступ под кнопкой
-            });
-            setBackgroundModalOpen(scene.id);
-          }}
-          className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+          disabled
+          className="w-8 h-8 rounded-lg bg-[#2a2a2a] text-gray-500 cursor-not-allowed flex items-center justify-center transition-colors duration-150 flex-shrink-0 opacity-50"
           title="Добавить фон"
         >
-          <Image size={12} />
+          <LayoutDashboard size={12} />
         </button>
-        {scenes.length > 1 && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                moveScene(scene.id, 'left');
-              }}
-              disabled={scenes.findIndex(s => s.id === scene.id) === 0}
-              className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Переместить влево"
-            >
-              <ArrowLeft size={12} />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                moveScene(scene.id, 'right');
-              }}
-              disabled={scenes.findIndex(s => s.id === scene.id) === scenes.length - 1}
-              className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Переместить вправо"
-            >
-              <ArrowRight size={12} />
-            </button>
-          </>
-        )}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // Дублировать сцену
-            const newId = Math.max(...scenes.map(s => s.id), 0) + 1;
-            const duplicatedScene: Scene = {
-              id: newId,
-              name: `${scene.name} (копия)`,
-              type: scene.type,
-              thumbnail: scene.thumbnail,
-            };
-            const currentIndex = scenes.findIndex(s => s.id === scene.id);
-            insertScene(duplicatedScene, currentIndex + 1);
-            setActiveScene(newId);
-          }}
-          className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+          disabled
+          className="w-8 h-8 rounded-lg bg-[#2a2a2a] text-gray-500 cursor-not-allowed flex items-center justify-center transition-colors duration-150 flex-shrink-0 opacity-50"
           title="Дублировать сцену"
         >
-          <Copy size={12} />
+          <LayoutGrid size={12} />
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // TODO: AI подбор картинки
-            console.log('AI подбор картинки для сцены', scene.id);
-          }}
-          className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+          disabled
+          className="w-8 h-8 rounded-lg bg-[#2a2a2a] text-gray-500 cursor-not-allowed flex items-center justify-center transition-colors duration-150 flex-shrink-0 opacity-50"
           title="Подобрать картинку (AI)"
         >
-          <Sparkles size={12} />
+          <LayoutPanelLeft size={12} />
         </button>
         {/* Delete button - только если сцен больше одной */}
         {scenes.length > 1 && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeScene(scene.id);
-            }}
-            className="w-8 h-8 rounded-lg bg-[#2a2a2a] hover:bg-red-600 text-gray-400 hover:text-white flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+            disabled
+            className="w-8 h-8 rounded-lg bg-[#2a2a2a] text-gray-500 cursor-not-allowed flex items-center justify-center transition-colors duration-150 flex-shrink-0 opacity-50"
             title="Удалить сцену"
           >
-            <Trash2 size={12} />
+            <LayoutPanelTop size={12} />
           </button>
         )}
       </div>
     );
   };
+
+  // Если нет сцен или активной сцены, показываем пустое состояние
+  if (scenes.length === 0 || !activeScene) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-text-muted">Нет сцен</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -401,7 +330,6 @@ export const ScenesBar = () => {
         <div className="w-full h-full">
           {displayedScenes.map((scene) => (
             <div
-              key={scene.id}
               className="w-full h-full relative"
             >
               {/* Scene Preview - на весь экран */}
@@ -410,24 +338,20 @@ export const ScenesBar = () => {
                         onClick={(e) => {
                           const target = e.target as HTMLElement;
                           if (!target.closest('.text-block-editor') && !target.closest('.text-block-display')) {
-                            if (activeSceneId === scene.id) {
-                              // Добавляем текстовый блок при клике на активную сцену
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const x = e.clientX - rect.left;
-                              const y = e.clientY - rect.top;
-                              addTextBlock(scene.id, {
-                                text: 'Новый текст',
-                                x,
-                                y,
-                                fontSize: 24,
-                                fontWeight: 'normal',
-                                color: '#ffffff',
-                                fontFamily: 'Inter',
-                                textAlign: 'left',
-                              });
-                            } else {
-                              setActiveScene(scene.id);
-                            }
+                            // Добавляем текстовый блок при клике на активную сцену
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            addTextBlock(activeScene.id, {
+                              text: 'Новый текст',
+                              x,
+                              y,
+                              fontSize: 24,
+                              fontWeight: 'normal',
+                              color: '#ffffff',
+                              fontFamily: 'Inter',
+                              textAlign: 'left',
+                            });
                           }
                         }}
                 onDragOver={(e) => {
@@ -449,29 +373,29 @@ export const ScenesBar = () => {
                   }
                   const participantId = parseInt(e.dataTransfer.getData('participantId'));
                   if (participantId && !isNaN(participantId)) {
-                    setParticipantOnAir(participantId, scene.id);
+                    setParticipantOnAir(participantId, activeScene.id);
                   }
                 }}
               >
                         <div
                           className="w-full h-full transition-all duration-150 relative"
                           style={{
-                            backgroundColor: scene.backgroundColor && !scene.backgroundColor.includes('gradient')
-                              ? scene.backgroundColor
+                            backgroundColor: activeScene.backgroundColor && !activeScene.backgroundColor.includes('gradient')
+                              ? activeScene.backgroundColor
                               : '#2a2a2a',
-                            background: scene.backgroundColor && scene.backgroundColor.includes('gradient') 
-                              ? scene.backgroundColor 
+                            background: activeScene.backgroundColor && activeScene.backgroundColor.includes('gradient') 
+                              ? activeScene.backgroundColor 
                               : undefined,
-                            backgroundImage: scene.backgroundPattern === 'lines' 
+                            backgroundImage: activeScene.backgroundPattern === 'lines' 
                               ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)'
-                              : scene.backgroundPattern === 'dots'
+                              : activeScene.backgroundPattern === 'dots'
                               ? 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)'
-                              : scene.backgroundPattern === 'circles'
+                              : activeScene.backgroundPattern === 'circles'
                               ? 'radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px)'
-                              : scene.backgroundPattern === 'stripes'
+                              : activeScene.backgroundPattern === 'stripes'
                               ? 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 16px)'
                               : undefined,
-                            backgroundSize: scene.backgroundPattern === 'dots' ? '10px 10px' : scene.backgroundPattern === 'circles' ? '15px 15px' : undefined,
+                            backgroundSize: activeScene.backgroundPattern === 'dots' ? '10px 10px' : activeScene.backgroundPattern === 'circles' ? '15px 15px' : undefined,
                             border: '1px solid #3a3a3a',
                           }}
                         >
@@ -479,9 +403,9 @@ export const ScenesBar = () => {
                   {(() => {
                     const sceneSpeakers = participants.filter(p => {
                       const participantScenes = participantsOnAir[p.id] || [];
-                      return participantScenes.includes(scene.id);
+                      return participantScenes.includes(activeScene.id);
                     });
-                    const hasTextBlocks = sceneTextBlocks[scene.id] && sceneTextBlocks[scene.id].length > 0;
+                    const hasTextBlocks = sceneTextBlocks[activeScene.id] && sceneTextBlocks[activeScene.id].length > 0;
                     
                     if (sceneSpeakers.length === 0 && !hasTextBlocks) {
                       return (
@@ -500,10 +424,10 @@ export const ScenesBar = () => {
                   {(() => {
                     const sceneSpeakers = participants.filter(p => {
                       const participantScenes = participantsOnAir[p.id] || [];
-                      return participantScenes.includes(scene.id);
+                      return participantScenes.includes(activeScene.id);
                     });
-                    const expandedId = expandedParticipantOnScene[scene.id];
-                    const scenePositions = participantPositions[scene.id] || {};
+                    const expandedId = expandedParticipantOnScene[activeScene.id];
+                    const scenePositions = participantPositions[activeScene.id] || {};
                     return sceneSpeakers.map((participant, index) => {
                       const isExpanded = expandedId === participant.id;
                       return (
@@ -512,13 +436,13 @@ export const ScenesBar = () => {
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setSelectedParticipant({ id: participant.id, sceneId: scene.id });
+                            setSelectedParticipant({ id: participant.id, sceneId: activeScene.id });
                             setContextMenu({
                               x: e.clientX,
                               y: e.clientY,
                               type: 'participant',
                               id: participant.id,
-                              sceneId: scene.id,
+                              sceneId: activeScene.id,
                               isExpanded,
                             });
                           }}
@@ -526,17 +450,17 @@ export const ScenesBar = () => {
                           <SceneParticipant 
                             participant={participant} 
                             index={isExpanded ? 0 : index}
-                            sceneId={scene.id}
+                            sceneId={activeScene.id}
                             isExpanded={isExpanded}
                             position={scenePositions[participant.id]}
                             onPositionChange={(x, y) => {
-                              setParticipantPosition(scene.id, participant.id, { x, y });
+                              setParticipantPosition(activeScene.id, participant.id, { x, y });
                             }}
                             onExpand={() => {
-                              setExpandedParticipantOnScene(scene.id, isExpanded ? null : participant.id);
+                              setExpandedParticipantOnScene(activeScene.id, isExpanded ? null : participant.id);
                             }}
                             onSelect={() => {
-                              setSelectedParticipant({ id: participant.id, sceneId: scene.id });
+                              setSelectedParticipant({ id: participant.id, sceneId: activeScene.id });
                             }}
                           />
                         </div>
@@ -545,15 +469,15 @@ export const ScenesBar = () => {
                   })()}
                   
                   {/* Текстовые блоки на сцене (полноэкранный режим) */}
-                  {(sceneTextBlocks[scene.id] || []).map((textBlock) => {
+                  {(sceneTextBlocks[activeScene.id] || []).map((textBlock) => {
                     const isEditing = editingTextBlockId === textBlock.id;
                     return (
                       <TextBlockComponent
                         key={textBlock.id}
                         textBlock={textBlock}
-                        sceneId={scene.id}
-                        onUpdate={(updates) => updateTextBlock(scene.id, textBlock.id, updates)}
-                        onDelete={() => removeTextBlock(scene.id, textBlock.id)}
+                        sceneId={activeScene.id}
+                        onUpdate={(updates) => updateTextBlock(activeScene.id, textBlock.id, updates)}
+                        onDelete={() => removeTextBlock(activeScene.id, textBlock.id)}
                         isEditing={isEditing}
                         onStartEdit={() => setEditingTextBlock(textBlock.id)}
                         onStopEdit={() => setEditingTextBlock(null)}
@@ -573,100 +497,45 @@ export const ScenesBar = () => {
                             padding: textBlock.padding,
                             borderRadius: textBlock.borderRadius,
                           };
-                          addTextBlock(scene.id, newTextBlock);
+                          addTextBlock(activeScene.id, newTextBlock);
                         }}
                       />
                     );
                   })}
                         </div>
                 {/* Fullscreen button - правый нижний угол сцены */}
-                {activeSceneId === scene.id && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFullscreen();
-                    }}
-                    className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors duration-150 flex items-center justify-center z-10"
-                    title={isStreamFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
-                  >
-                    <Maximize size={20} className="text-white" />
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors duration-150 flex items-center justify-center z-10"
+                  title={isStreamFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
+                >
+                  <Maximize size={20} className="text-white" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        // Обычный режим
-        <div 
-          ref={scrollContainerRef}
-          className="w-full h-full pt-4 pb-6 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory"
-        >
-          <div className="flex items-center min-h-full pl-[calc(50vw-480px)] pr-[calc(50vw-480px)]">
-            <div className="flex items-center gap-8 relative">
-            {displayedScenes.map((scene, sceneIndex) => (
-              <React.Fragment key={scene.id}>
-                {/* Иконки между сценами */}
-                {sceneIndex > 0 && (
-                  <div className="relative w-8 flex items-center justify-center group">
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-30 pointer-events-none">
-                      <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                      <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newId = Math.max(...scenes.map(s => s.id), 0) + 1;
-                        const newScene: Scene = {
-                          id: newId,
-                          name: `Сцена ${newId}`,
-                          type: 'blank',
-                          thumbnail: '',
-                        };
-                        // Вставляем сцену перед текущей сценой
-                        const currentSceneIndex = scenes.findIndex(s => s.id === scene.id);
-                        insertScene(newScene, currentSceneIndex);
-                        setActiveScene(newId);
-                      }}
-                        className="w-10 h-10 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-border flex items-center justify-center transition-colors duration-150"
-                        title="Добавить сцену между"
-                      >
-                        <Plus size={20} className="text-text-muted" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // TODO: Открыть модальное окно для настройки перехода
-                          console.log('Настройка перехода между сценами');
-                        }}
-                        className="w-10 h-10 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-border flex items-center justify-center transition-colors duration-150"
-                        title="Настроить переход"
-                      >
-                        <ArrowRightLeft size={20} className="text-text-muted" />
-                      </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      sceneRefs.current[scene.id] = el;
-                    }
-                  }}
-                  className="flex flex-col cursor-pointer transition-all duration-150 w-[960px] flex-shrink-0 scroll-snap-align-center"
-                >
-              {/* Scene Name - скрыто в полноэкранном режиме */}
-              {!isStreamFullscreen && (
+        // Обычный режим - показываем только активную сцену в центре (как в Google Slides)
+        <div className="w-full h-full flex items-center justify-center pt-4 pb-6">
+          <div className="flex flex-col items-center max-w-[960px] w-full">
+            {/* Показываем только активную сцену */}
+            {activeScene && (
+              <div className="flex flex-col w-full">
+                {/* Scene Name */}
                 <div className="mb-3">
-                  {editingSceneId === scene.id ? (
+                  {editingSceneId === activeScene.id ? (
                     <div className="flex items-center justify-between gap-2 px-2">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#2a2a2a] border border-accent-purple flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-white">{scene.id}</span>
+                          <span className="text-sm font-medium text-white">{activeScene.id}</span>
                         </div>
                         {/* Кнопка "В эфир" */}
                         {(() => {
-                          const isActive = activeSceneId === scene.id;
-                          const isStreaming = streamState.isStreaming && isActive;
+                          const isStreaming = streamState.isStreaming;
                           return (
                             <button
                               onClick={(e) => {
@@ -674,7 +543,6 @@ export const ScenesBar = () => {
                                 if (isStreaming) {
                                   stopStream();
                                 } else {
-                                  setActiveScene(scene.id);
                                   startStream();
                                 }
                               }}
@@ -691,18 +559,17 @@ export const ScenesBar = () => {
                           );
                         })()}
                       </div>
-                      <SceneActionButtons scene={scene} />
+                      <SceneActionButtons scene={activeScene} />
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-2 px-2">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#2a2a2a] border border-border flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-white">{scene.id}</span>
+                          <span className="text-sm font-medium text-white">{activeScene.id}</span>
                         </div>
                         {/* Кнопка "В эфир" */}
                         {(() => {
-                          const isActive = activeSceneId === scene.id;
-                          const isStreaming = streamState.isStreaming && isActive;
+                          const isStreaming = streamState.isStreaming;
                           return (
                             <button
                               onClick={(e) => {
@@ -710,7 +577,6 @@ export const ScenesBar = () => {
                                 if (isStreaming) {
                                   stopStream();
                                 } else {
-                                  setActiveScene(scene.id);
                                   startStream();
                                 }
                               }}
@@ -727,29 +593,110 @@ export const ScenesBar = () => {
                           );
                         })()}
                       </div>
-                      <SceneActionButtons scene={scene} />
+                      <SceneActionButtons scene={activeScene} />
                     </div>
                   )}
                 </div>
-              )}
               
-              {/* Scene Preview */}
-              <div 
-                className={`w-full aspect-video relative overflow-visible transition-all duration-150 ${textMode ? 'cursor-crosshair' : ''}`}
-                onClick={(e) => {
-                  // Если клик не на текстовом блоке
-                  const target = e.target as HTMLElement;
-                  if (!target.closest('.text-block-editor') && !target.closest('.text-block-display') && !target.closest('.text-block-input')) {
-                    if (textMode) {
-                      // В режиме текста создаем блок на любой сцене
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const sceneDropZone = e.currentTarget.querySelector('.scene-drop-zone') as HTMLElement;
-                      if (sceneDropZone) {
-                        const sceneRect = sceneDropZone.getBoundingClientRect();
+                {/* Scene Preview */}
+                <div 
+                  className={`w-full aspect-video relative overflow-visible transition-all duration-150 ${textMode ? 'cursor-crosshair' : ''}`}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      type: 'scene',
+                      sceneId: activeScene.id,
+                    });
+                  }}
+                  onClick={(e) => {
+                    // Если клик не на текстовом блоке
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('.text-block-editor') && !target.closest('.text-block-display') && !target.closest('.text-block-input')) {
+                      if (textMode) {
+                        // В режиме текста создаем блок
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const sceneDropZone = e.currentTarget.querySelector('.scene-drop-zone') as HTMLElement;
+                        if (sceneDropZone) {
+                          const sceneRect = sceneDropZone.getBoundingClientRect();
+                          const x = e.clientX - sceneRect.left;
+                          const y = e.clientY - sceneRect.top;
+                          addTextBlock(activeScene.id, {
+                            text: '',
+                            x,
+                            y,
+                            width: 200,
+                            height: 100,
+                            fontSize: 24,
+                            fontWeight: 'normal',
+                            color: '#ffffff',
+                            fontFamily: 'Inter',
+                            textAlign: 'left',
+                          });
+                          setTextMode(false); // Выключаем режим после создания
+                        }
+                      }
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    // Меняем курсор на "grabbing" при перетаскивании на сцену
+                    if (e.currentTarget instanceof HTMLElement) {
+                      e.currentTarget.style.cursor = 'grabbing';
+                      const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
+                      if (sceneDiv instanceof HTMLElement) {
+                        sceneDiv.style.borderColor = '#8b5cf6';
+                        sceneDiv.style.borderWidth = '2px';
+                      }
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    // Убираем визуальный эффект при уходе
+                    if (e.currentTarget instanceof HTMLElement) {
+                      e.currentTarget.style.cursor = '';
+                      const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
+                      if (sceneDiv instanceof HTMLElement) {
+                        sceneDiv.style.borderColor = '';
+                        sceneDiv.style.borderWidth = '';
+                      }
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    // Убираем визуальный эффект
+                    if (e.currentTarget instanceof HTMLElement) {
+                      e.currentTarget.style.cursor = '';
+                      const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
+                      if (sceneDiv instanceof HTMLElement) {
+                        sceneDiv.style.borderColor = '';
+                        sceneDiv.style.borderWidth = '';
+                      }
+                    }
+                    // Получаем ID спикера из данных перетаскивания
+                    const participantId = parseInt(e.dataTransfer.getData('participantId'));
+                    if (participantId && !isNaN(participantId)) {
+                      setParticipantOnAir(participantId, activeScene.id);
+                    }
+                  }}
+                >
+                  <div
+                    className={`scene-drop-zone w-full h-full rounded-2xl transition-all duration-150 ${
+                      streamState.isStreaming
+                        ? 'ring-2 ring-red-600'
+                        : 'ring-2 ring-accent-purple'
+                    }`}
+                    onClick={(e) => {
+                      // Обработчик клика на саму сцену для создания текстового блока
+                      if (textMode) {
+                        e.stopPropagation();
+                        const sceneRect = e.currentTarget.getBoundingClientRect();
                         const x = e.clientX - sceneRect.left;
                         const y = e.clientY - sceneRect.top;
-                        addTextBlock(scene.id, {
+                        addTextBlock(activeScene.id, {
                           text: '',
                           x,
                           y,
@@ -761,199 +708,117 @@ export const ScenesBar = () => {
                           fontFamily: 'Inter',
                           textAlign: 'left',
                         });
-                        setTextMode(false); // Выключаем режим после создания
+                        setTextMode(false);
                       }
-                    } else {
-                      // Обычный режим - переключаем сцену
-                      setActiveScene(scene.id);
-                    }
-                  }
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                  // Меняем курсор на "grabbing" при перетаскивании на сцену
-                  if (e.currentTarget instanceof HTMLElement) {
-                    e.currentTarget.style.cursor = 'grabbing';
-                    const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
-                    if (sceneDiv instanceof HTMLElement) {
-                      sceneDiv.style.borderColor = '#8b5cf6';
-                      sceneDiv.style.borderWidth = '2px';
-                    }
-                  }
-                }}
-                onDragLeave={(e) => {
-                  // Убираем визуальный эффект при уходе
-                  if (e.currentTarget instanceof HTMLElement) {
-                    e.currentTarget.style.cursor = '';
-                    const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
-                    if (sceneDiv instanceof HTMLElement) {
-                      sceneDiv.style.borderColor = '';
-                      sceneDiv.style.borderWidth = '';
-                    }
-                  }
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  // Убираем визуальный эффект
-                  if (e.currentTarget instanceof HTMLElement) {
-                    e.currentTarget.style.cursor = '';
-                    const sceneDiv = e.currentTarget.querySelector('.scene-drop-zone');
-                    if (sceneDiv instanceof HTMLElement) {
-                      sceneDiv.style.borderColor = '';
-                      sceneDiv.style.borderWidth = '';
-                    }
-                  }
-                  // Получаем ID спикера из данных перетаскивания
-                  const participantId = parseInt(e.dataTransfer.getData('participantId'));
-                  if (participantId && !isNaN(participantId)) {
-                    setParticipantOnAir(participantId, scene.id);
-                  }
-                }}
-              >
-                <div
-                  className={`scene-drop-zone w-full h-full rounded-2xl transition-all duration-150 ${
-                    activeSceneId === scene.id && streamState.isStreaming
-                      ? 'ring-2 ring-red-600'
-                      : activeSceneId === scene.id
-                      ? 'ring-2 ring-accent-purple'
-                      : ''
-                  }`}
-                  onClick={(e) => {
-                    // Обработчик клика на саму сцену для создания текстового блока
-                    if (textMode) {
-                      e.stopPropagation();
-                      const sceneRect = e.currentTarget.getBoundingClientRect();
-                      const x = e.clientX - sceneRect.left;
-                      const y = e.clientY - sceneRect.top;
-                      addTextBlock(scene.id, {
-                        text: '',
-                        x,
-                        y,
-                        width: 200,
-                        height: 100,
-                        fontSize: 24,
-                        fontWeight: 'normal',
-                        color: '#ffffff',
-                        fontFamily: 'Inter',
-                        textAlign: 'left',
+                    }}
+                    style={{
+                      backgroundColor: activeScene.backgroundColor && !activeScene.backgroundColor.includes('gradient')
+                        ? activeScene.backgroundColor
+                        : '#2a2a2a',
+                      background: activeScene.backgroundColor && activeScene.backgroundColor.includes('gradient') 
+                        ? activeScene.backgroundColor 
+                        : undefined,
+                      backgroundImage: activeScene.backgroundPattern === 'lines' 
+                        ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)'
+                        : activeScene.backgroundPattern === 'dots'
+                        ? 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)'
+                        : activeScene.backgroundPattern === 'circles'
+                        ? 'radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px)'
+                        : activeScene.backgroundPattern === 'stripes'
+                        ? 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 16px)'
+                        : undefined,
+                      backgroundSize: activeScene.backgroundPattern === 'dots' ? '10px 10px' : activeScene.backgroundPattern === 'circles' ? '15px 15px' : undefined,
+                      border: streamState.isStreaming
+                        ? '1px solid #dc2626'
+                        : '2px solid #8b5cf6',
+                      boxShadow: streamState.isStreaming
+                        ? '0 0 0 1px #dc2626, 0 0 0 2px #000'
+                        : '0 0 0 2px #8b5cf6, 0 0 0 4px #000',
+                    }}
+                  >
+                    {(() => {
+                      // Вычисляем список спикеров на сцене один раз
+                      const sceneSpeakers = participants.filter(p => {
+                        const participantScenes = participantsOnAir[p.id] || [];
+                        return participantScenes.includes(activeScene.id);
                       });
-                      setTextMode(false);
-                    }
-                  }}
-                  style={{
-                    backgroundColor: scene.backgroundColor && !scene.backgroundColor.includes('gradient')
-                      ? scene.backgroundColor
-                      : '#2a2a2a',
-                    background: scene.backgroundColor && scene.backgroundColor.includes('gradient') 
-                      ? scene.backgroundColor 
-                      : undefined,
-                    backgroundImage: scene.backgroundPattern === 'lines' 
-                      ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)'
-                      : scene.backgroundPattern === 'dots'
-                      ? 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)'
-                      : scene.backgroundPattern === 'circles'
-                      ? 'radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px)'
-                      : scene.backgroundPattern === 'stripes'
-                      ? 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 16px)'
-                      : undefined,
-                    backgroundSize: scene.backgroundPattern === 'dots' ? '10px 10px' : scene.backgroundPattern === 'circles' ? '15px 15px' : undefined,
-                    border: activeSceneId === scene.id && streamState.isStreaming
-                      ? '1px solid #dc2626'
-                      : activeSceneId === scene.id
-                      ? '2px solid #8b5cf6'
-                      : '1px solid #3a3a3a',
-                    boxShadow: activeSceneId === scene.id && streamState.isStreaming
-                      ? '0 0 0 1px #dc2626, 0 0 0 2px #000'
-                      : activeSceneId === scene.id
-                      ? '0 0 0 2px #8b5cf6, 0 0 0 4px #000'
-                      : 'none',
-                  }}
-                >
-                  {(() => {
-                    // Вычисляем список спикеров на сцене один раз
-                    const sceneSpeakers = participants.filter(p => {
-                      const participantScenes = participantsOnAir[p.id] || [];
-                      return participantScenes.includes(scene.id);
-                    });
-                    
-                    return (
-                      <>
-                                  {/* Placeholder контент, если нет спикеров и текстовых блоков на сцене */}
-                                  {sceneSpeakers.length === 0 && (!sceneTextBlocks[scene.id] || sceneTextBlocks[scene.id].length === 0) && (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-0">
-                                      <p className="text-sm text-gray-400 text-center max-w-md">
-                                        Добавьте или Перетащите спикеров и контент, чтобы создать свою сцену
-                                      </p>
-                                    </div>
-                                  )}
-                        
-                        {/* Спикеры в эфире на этой сцене */}
-                        {(() => {
-                          const expandedId = expandedParticipantOnScene[scene.id];
-                          const scenePositions = participantPositions[scene.id] || {};
-                    return sceneSpeakers.map((participant, index) => {
-                      const isExpanded = expandedId === participant.id;
+                      
                       return (
-                        <div
-                          key={participant.id}
-                          onContextMenu={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedParticipant({ id: participant.id, sceneId: scene.id });
-                            setContextMenu({
-                              x: e.clientX,
-                              y: e.clientY,
-                              type: 'participant',
-                              id: participant.id,
-                              sceneId: scene.id,
-                              isExpanded,
+                        <>
+                          {/* Placeholder контент, если нет спикеров и текстовых блоков на сцене */}
+                          {sceneSpeakers.length === 0 && (!sceneTextBlocks[activeScene.id] || sceneTextBlocks[activeScene.id].length === 0) && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-0">
+                              <p className="text-sm text-gray-400 text-center max-w-md">
+                                Добавьте или Перетащите спикеров и контент, чтобы создать свою сцену
+                              </p>
+                            </div>
+                          )}
+                  
+                          {/* Спикеры в эфире на этой сцене */}
+                          {(() => {
+                            const expandedId = expandedParticipantOnScene[activeScene.id];
+                            const scenePositions = participantPositions[activeScene.id] || {};
+                            return sceneSpeakers.map((participant, index) => {
+                              const isExpanded = expandedId === participant.id;
+                              return (
+                                <div
+                                  key={participant.id}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedParticipant({ id: participant.id, sceneId: activeScene.id });
+                                    setContextMenu({
+                                      x: e.clientX,
+                                      y: e.clientY,
+                                      type: 'participant',
+                                      id: participant.id,
+                                      sceneId: activeScene.id,
+                                      isExpanded,
+                                    });
+                                  }}
+                                >
+                                  <SceneParticipant 
+                                    participant={participant} 
+                                    index={isExpanded ? 0 : index}
+                                    sceneId={activeScene.id}
+                                    isExpanded={isExpanded}
+                                    position={scenePositions[participant.id]}
+                                    onPositionChange={(x, y) => {
+                                      setParticipantPosition(activeScene.id, participant.id, { x, y });
+                                    }}
+                                    onExpand={() => {
+                                      setExpandedParticipantOnScene(activeScene.id, isExpanded ? null : participant.id);
+                                    }}
+                                    onSelect={() => {
+                                      setSelectedParticipant({ id: participant.id, sceneId: activeScene.id });
+                                    }}
+                                  />
+                                </div>
+                              );
                             });
-                          }}
-                        >
-                          <SceneParticipant 
-                            participant={participant} 
-                            index={isExpanded ? 0 : index}
-                            sceneId={scene.id}
-                            isExpanded={isExpanded}
-                            position={scenePositions[participant.id]}
-                            onPositionChange={(x, y) => {
-                              setParticipantPosition(scene.id, participant.id, { x, y });
-                            }}
-                            onExpand={() => {
-                              setExpandedParticipantOnScene(scene.id, isExpanded ? null : participant.id);
-                            }}
-                            onSelect={() => {
-                              setSelectedParticipant({ id: participant.id, sceneId: scene.id });
-                            }}
-                          />
-                        </div>
+                          })()}
+                  
+                          {/* Текстовые блоки на сцене */}
+                          {(sceneTextBlocks[activeScene.id] || []).map((textBlock) => {
+                            const isEditing = editingTextBlockId === textBlock.id;
+                            return (
+                              <TextBlockComponent
+                                key={textBlock.id}
+                                textBlock={textBlock}
+                                sceneId={activeScene.id}
+                                onUpdate={(updates) => updateTextBlock(activeScene.id, textBlock.id, updates)}
+                                onDelete={() => removeTextBlock(activeScene.id, textBlock.id)}
+                                isEditing={isEditing}
+                                onStartEdit={() => setEditingTextBlock(textBlock.id)}
+                                onStopEdit={() => setEditingTextBlock(null)}
+                              />
+                            );
+                          })}
+                        </>
                       );
-                    });
-                        })()}
-                        
-                        {/* Текстовые блоки на сцене */}
-                        {(sceneTextBlocks[scene.id] || []).map((textBlock) => {
-                          const isEditing = editingTextBlockId === textBlock.id;
-                          return (
-                            <TextBlockComponent
-                              key={textBlock.id}
-                              textBlock={textBlock}
-                              sceneId={scene.id}
-                              onUpdate={(updates) => updateTextBlock(scene.id, textBlock.id, updates)}
-                              onDelete={() => removeTextBlock(scene.id, textBlock.id)}
-                              isEditing={isEditing}
-                              onStartEdit={() => setEditingTextBlock(textBlock.id)}
-                              onStopEdit={() => setEditingTextBlock(null)}
-                            />
-                          );
-                        })}
-                      </>
-                    );
-                  })()}
-                </div>
-                {/* Fullscreen button - правый нижний угол сцены */}
-                {activeSceneId === scene.id && (
+                    })()}
+                  </div>
+                  {/* Fullscreen button - правый нижний угол сцены */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -964,21 +829,9 @@ export const ScenesBar = () => {
                   >
                     <Maximize size={20} className="text-white" />
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-              </React.Fragment>
-            ))}
-          
-            {/* Add Scene Button - иконка плюс справа */}
-            <button
-              onClick={handleAddScene}
-              className="flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors duration-150 flex-shrink-0 z-10 relative"
-              title="Новая сцена"
-            >
-              <Plus size={32} className="text-text-muted" />
-            </button>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -995,6 +848,59 @@ export const ScenesBar = () => {
           }}
           sceneId={backgroundModalOpen}
           position={backgroundModalPosition}
+        />
+      )}
+      
+      {/* Контекстное меню для сцены */}
+      {contextMenu && contextMenu.type === 'scene' && contextMenu.sceneId && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onImage={() => {
+            if (contextMenu.sceneId) {
+              // Открываем модалку выбора фона
+              setBackgroundModalPosition({
+                x: contextMenu.x,
+                y: contextMenu.y,
+              });
+              setBackgroundModalOpen(contextMenu.sceneId);
+            }
+            setContextMenu(null);
+          }}
+          onDuplicate={() => {
+            if (contextMenu.sceneId) {
+              const scene = scenes.find(s => s.id === contextMenu.sceneId);
+              if (scene) {
+                const newId = Math.max(...scenes.map(s => s.id), 0) + 1;
+                const duplicatedScene: Scene = {
+                  id: newId,
+                  name: `${scene.name} (копия)`,
+                  type: scene.type,
+                  thumbnail: scene.thumbnail,
+                  backgroundColor: scene.backgroundColor,
+                  backgroundPattern: scene.backgroundPattern,
+                };
+                addScene(duplicatedScene);
+                setActiveScene(newId);
+              }
+            }
+            setContextMenu(null);
+          }}
+          onAI={() => {
+            if (contextMenu.sceneId) {
+              // TODO: AI подбор картинки
+              console.log('AI подбор картинки для сцены', contextMenu.sceneId);
+            }
+            setContextMenu(null);
+          }}
+          onDelete={() => {
+            if (contextMenu.sceneId && scenes.length > 1) {
+              removeScene(contextMenu.sceneId);
+            }
+            setContextMenu(null);
+          }}
+          isDeleteDisabled={scenes.length === 1}
         />
       )}
       

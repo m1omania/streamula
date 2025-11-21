@@ -15,7 +15,7 @@ export const SlideViewer = () => {
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center bg-black relative ${isStreamFullscreen ? 'w-full h-full' : 'w-full h-full'}`}>
+    <div className={`flex flex-col items-center justify-center ${isStreamFullscreen ? 'bg-black w-full h-full' : 'bg-background w-full h-full'} relative`}>
       {pdfUrl ? (
         <div className="w-full h-full flex items-center justify-center">
           <Document
@@ -38,7 +38,7 @@ export const SlideViewer = () => {
           </Document>
         </div>
       ) : (
-        <div className="w-full h-full flex items-start justify-center">
+        <div className="w-full h-full flex items-start justify-center bg-background">
           <ScenesBar />
         </div>
       )}

@@ -4,13 +4,14 @@ import { LandingPage } from './components/landing/LandingPage';
 import { Header } from './components/layout/Header';
 import { MainCanvas } from './components/layout/MainCanvas';
 import { RightPanel } from './components/layout/RightPanel';
+import { ScenesPanel } from './components/layout/ScenesPanel';
 import { Chat } from './components/chat/Chat';
 import { ControlPanel } from './components/controls/ControlPanel';
 import { SettingsModal } from './components/modals/SettingsModal';
 
 function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { isStreamFullscreen, currentPage, showChat } = useStreamStore();
+  const { isStreamFullscreen, currentPage, showChat, showScenesPanel } = useStreamStore();
 
   // Landing page
   if (currentPage === 'landing') {
@@ -34,6 +35,9 @@ function App() {
       
       {/* Main Content Area */}
       <div className="flex-1 flex min-h-0">
+        {/* Left - Панель сцен */}
+        {showScenesPanel && <ScenesPanel />}
+        
         {/* Left - Спикеры */}
         <RightPanel />
         

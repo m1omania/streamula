@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Copy, Trash2, Layers, ArrowUp, ArrowDown, Lock, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Copy, Trash2, Layers, ArrowUp, ArrowDown, Lock, Eye, EyeOff, Maximize2, Minimize2, Image, Sparkles } from 'lucide-react';
 
 interface ContextMenuProps {
   x: number;
@@ -13,9 +13,12 @@ interface ContextMenuProps {
   onLock?: () => void;
   onHide?: () => void;
   onExpand?: () => void;
+  onImage?: () => void; // Для сцены - открыть выбор фона
+  onAI?: () => void; // Для сцены - AI подбор картинки
   isLocked?: boolean;
   isHidden?: boolean;
   isExpanded?: boolean;
+  isDeleteDisabled?: boolean; // Отключить кнопку удаления
 }
 
 export const ContextMenu = ({
@@ -30,9 +33,12 @@ export const ContextMenu = ({
   onLock,
   onHide,
   onExpand,
+  onImage,
+  onAI,
   isLocked = false,
   isHidden = false,
   isExpanded = false,
+  isDeleteDisabled = false,
 }: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x, y });
@@ -83,6 +89,25 @@ export const ContextMenu = ({
   }, [x, y, onClose]);
 
   const menuItems = [
+    // Для сцены - специальные пункты
+    ...(onImage ? [{
+      label: 'Изображение',
+      icon: Image,
+      onClick: onImage,
+    }] : []),
+    ...(onDuplicate ? [{
+      label: 'Дублировать',
+      icon: Copy,
+      shortcut: '⌘D',
+      onClick: onDuplicate,
+    }] : []),
+    ...(onAI ? [{
+      label: 'AI',
+      icon: Sparkles,
+      onClick: onAI,
+    }] : []),
+    ...(onImage || onDuplicate || onAI ? [{ type: 'separator' as const }] : []),
+    // Для объектов на сцене
     ...(onExpand ? [{
       label: isExpanded ? 'Свернуть' : 'Развернуть',
       icon: isExpanded ? Minimize2 : Maximize2,
@@ -95,12 +120,6 @@ export const ContextMenu = ({
       icon: Copy,
       shortcut: '⌘C',
       onClick: onCopy,
-    }] : []),
-    ...(onDuplicate ? [{
-      label: 'Дублировать',
-      icon: Copy,
-      shortcut: '⌘D',
-      onClick: onDuplicate,
     }] : []),
     ...(onCopy || onDuplicate ? [{ type: 'separator' as const }] : []),
     ...(onBringToFront ? [{
@@ -135,6 +154,7 @@ export const ContextMenu = ({
       shortcut: '⌫',
       onClick: onDelete,
       danger: true,
+      disabled: isDeleteDisabled,
     }] : []),
   ].filter(Boolean);
 
@@ -155,15 +175,23 @@ export const ContextMenu = ({
         }
 
         const Icon = item.icon;
+        const isDisabled = item.disabled || false;
         return (
           <button
             key={index}
             onClick={() => {
-              item.onClick();
-              onClose();
+              if (!isDisabled) {
+                item.onClick();
+                onClose();
+              }
             }}
-            className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-[#2a2a2a] transition-colors ${
-              item.danger ? 'text-red-400 hover:text-red-300' : 'text-white'
+            disabled={isDisabled}
+            className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors ${
+              isDisabled 
+                ? 'text-gray-500 cursor-not-allowed opacity-50' 
+                : item.danger 
+                  ? 'text-red-400 hover:text-red-300 hover:bg-[#2a2a2a]' 
+                  : 'text-white hover:bg-[#2a2a2a]'
             }`}
           >
             <div className="flex items-center gap-2">

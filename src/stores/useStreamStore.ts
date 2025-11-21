@@ -38,6 +38,7 @@ interface StoreState {
   showParticipants: boolean;
   showChat: boolean;
   showSpeakers: boolean;
+  showScenesPanel: boolean; // Видимость панели сцен
   textMode: boolean; // Режим добавления текста
   
   // Navigation
@@ -118,6 +119,7 @@ interface StoreActions {
   toggleParticipants: () => void;
   toggleChat: () => void;
   toggleSpeakers: () => void;
+  toggleScenesPanel: () => void;
   setTextMode: (enabled: boolean) => void;
   
   // Navigation actions
@@ -150,6 +152,7 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
           showParticipants: true,
           showChat: false,
           showSpeakers: false,
+          showScenesPanel: true,
           textMode: false,
           currentPage: 'landing',
   selectedTemplateName: 'Моя трансляция',
@@ -523,6 +526,9 @@ export const useStreamStore = create<StoreState & StoreActions>((set) => ({
   },
           toggleSpeakers: () => {
             set((state) => ({ showSpeakers: !state.showSpeakers }));
+          },
+          toggleScenesPanel: () => {
+            set((state) => ({ showScenesPanel: !state.showScenesPanel }));
           },
           setTextMode: (enabled: boolean) => {
             set({ textMode: enabled });
